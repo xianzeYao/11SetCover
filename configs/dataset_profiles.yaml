@@ -1,0 +1,61 @@
+dataset_id: default
+output_root: outputs/datasets
+seed: 2026
+clean_output: true
+
+# item_count = round(set_count * r), r ~ U(item_ratio_range)
+# 若某个 class 显式配置了 item_range，则优先使用 item_range（覆盖全局 item_ratio_range）
+item_ratio_range: [0.4, 0.8]
+cost_mode: uniform
+cost_range: [1, 20]
+samples_per_class: 5
+
+classes:
+  # 6 类设计：聚焦 set 规模 + 密度 + 结构
+  # 统一固定 item_count=100，尽量避免 item_count 主导难度
+  # 控制 high_density 上限到 0.10，降低 ILP 频繁撞 60s 的概率
+
+  # 1) set 规模类（固定 density，只变 set_count）
+  - class_id: set_scale_small
+    set_range: [60, 180]
+    item_range: [100, 100]
+    density_range: [0.024, 0.024]
+    pattern: random
+    cost_mode: uniform
+
+  - class_id: set_scale_large
+    set_range: [240, 400]
+    item_range: [100, 100]
+    density_range: [0.050, 0.050]
+    pattern: random
+    cost_mode: uniform
+
+  # 2) 密度类（固定 set 与 item，只变 density）
+  - class_id: low_density
+    set_range: [240, 240]
+    item_range: [100, 100]
+    density_range: [0.008, 0.020]
+    pattern: random
+    cost_mode: uniform
+
+  - class_id: high_density
+    set_range: [220, 220]
+    item_range: [100, 100]
+    density_range: [0.085, 0.100]
+    pattern: random
+    cost_mode: uniform
+
+  # 3) 结构类（固定 set/item，仅结构不同）
+  - class_id: special_clustered
+    set_range: [260, 260]
+    item_range: [100, 100]
+    density_range: [0.085, 0.085]
+    pattern: clustered
+    cost_mode: uniform
+
+  - class_id: special_hub
+    set_range: [260, 260]
+    item_range: [100, 100]
+    density_range: [0.085, 0.085]
+    pattern: hub
+    cost_mode: uniform

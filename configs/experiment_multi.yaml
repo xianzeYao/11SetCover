@@ -1,0 +1,93 @@
+single_config: configs/experiment_single.yaml
+
+dataset:
+  root: outputs/datasets/default
+  class_filter: []
+  file_prefix: sc_
+
+experiment:
+  repeats: 5
+  seeds: [0, 1, 2, 3, 4]
+
+algorithms:
+  - id: greedy_001
+    module: core.alg_greedy_001
+    params: {}
+  - id: ilp_pulp
+    module: core.alg_ilp_pulp
+    params:
+      time_limit_sec: 300
+      msg: 0
+  - id: ilp_ortools
+    module: core.alg_ilp_ortools
+    params:
+      time_limit_sec: 300
+      msg: 0
+      num_search_workers: 1
+  - id: ga
+    module: core.alg_ga
+    params:
+      population_size: 80
+      generations: 200
+      crossover_rate: 0.8
+      mutation_rate: 0.006
+      elitism: 2
+      tournament_size: 3
+      init_strategy: hybrid
+      init_on_prob: 0.08
+      repair_init: true
+      early_stop_patience: 30
+      early_stop_min_generations: 140
+      min_rel_improve: 0.0001
+  - id: hgasa
+    module: core.alg_hgasa
+    params:
+      population_size: 80
+      generations: 200
+      crossover_rate: 0.8
+      mutation_rate: 0.006
+      elitism: 2
+      tournament_size: 3
+      init_strategy: hybrid
+      init_on_prob: 0.08
+      repair_init: true
+      hybrid_frequency: 15
+      elite_fraction: 0.10
+      sa_initial_temp: 1000
+      sa_cooling_rate: 0.99
+      sa_min_temp: 0.1
+      sa_max_iter: 1200
+      sa_moves_per_temp: 20
+      early_stop_patience: 30
+      early_stop_min_generations: 140
+      min_rel_improve: 0.0001
+  - id: moea_nsga2
+    module: core.alg_moea_nsga2
+    params:
+      pop_size: 100
+      generations: 250
+      crossover_rate: 0.9
+      init_on_prob: 0.08
+      repair_probability: 0.85
+      init_strategy: hybrid
+      elite_archive_size: 300
+      early_stop_patience: 30
+      early_stop_min_generations: 175
+      min_rel_improve: 0.0001
+
+
+output:
+  root: outputs/experiments
+  generate_single_plots: true
+  generate_compare_plots: true
+
+compare:
+  significance_method: wilcoxon
+  significance_metrics: [objective]
+  class_axis_map:
+    set_scale_small: set_count
+    set_scale_large: set_count
+    low_density: density
+    high_density: density
+    special_clustered: sample_id
+    special_hub: sample_id

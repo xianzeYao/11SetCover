@@ -1,0 +1,47 @@
+algorithm:
+  id: greedy_001
+  module: core.alg_greedy_001
+  # Alternatives:
+  # id: ilp_pulp
+  # module: core.alg_ilp_pulp
+  # id: moea_nsga2
+  # module: core.alg_moea_nsga2
+
+dataset:
+  root: outputs/datasets/default
+  class_filter: []
+  file_prefix: sc_
+
+experiment:
+  mode: ofat
+  repeats: 5
+  seeds: [0, 1, 2, 3, 4]
+
+  ofat:
+    base_params: {}
+    sweep_param: ""
+    sweep_values: []
+    # Sweep example:
+    # base_params:
+    #   initial_temp: 1000
+    #   cooling_rate: 0.995
+    #   max_iter: 3000
+    #   moves_per_temp: 40
+    # sweep_param: cooling_rate
+    # sweep_values: [0.99, 0.995, 0.999]
+
+  grid:
+    params: {}
+    # MOEA grid example:
+    # params:
+    #   pop_size: [60, 80, 100]
+    #   generations: [80, 120]
+    #   crossover_rate: [0.8, 0.9]
+
+metrics:
+  significance_method: wilcoxon
+  significance_metric: objective
+
+output:
+  root: outputs/experiments
+  generate_plots: true

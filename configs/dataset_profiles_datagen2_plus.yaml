@@ -1,0 +1,70 @@
+dataset_id: datagen2_strict
+output_root: outputs/datasets
+seed: 2026
+clean_output: true
+
+item_ratio_range: [0.4, 0.8]
+cost_mode: uniform
+cost_range: [1, 20]
+samples_per_class: 10
+
+classes:
+  # 1) set_count 对照：仅 set_range 变化，其余固定
+  - class_id: set_scale_small
+    set_range: [20, 220]
+    item_range: [220, 220]
+    density_range: [0.060, 0.060]
+    pattern: random
+    cost_mode: uniform
+
+  - class_id: set_scale_large
+    set_range: [420, 700]
+    item_range: [220, 220]
+    density_range: [0.060, 0.060]
+    pattern: random
+    cost_mode: uniform
+
+  # 2) item_count 对照：仅 item_range 变化，其余固定
+  - class_id: item_scale_small
+    set_range: [300, 300]
+    item_range: [80, 220]
+    density_range: [0.060, 0.060]
+    pattern: random
+    cost_mode: uniform
+
+  - class_id: item_scale_large
+    set_range: [300, 300]
+    item_range: [320, 520]
+    density_range: [0.060, 0.060]
+    pattern: random
+    cost_mode: uniform
+
+  # 3) density 对照：仅 density_range 变化，其余固定
+  - class_id: low_density
+    set_range: [320, 320]
+    item_range: [220, 220]
+    density_range: [0.008, 0.025]
+    pattern: random
+    cost_mode: uniform
+
+  - class_id: high_density
+    set_range: [320, 320]
+    item_range: [220, 220]
+    density_range: [0.075, 0.100]
+    pattern: random
+    cost_mode: uniform
+
+  # 4) 结构对照：仅 pattern 变化，其余固定
+  - class_id: special_clustered
+    set_range: [320, 320]
+    item_range: [220, 220]
+    density_range: [0.085, 0.085]
+    pattern: clustered
+    cost_mode: uniform
+
+  - class_id: special_hub
+    set_range: [320, 320]
+    item_range: [220, 220]
+    density_range: [0.085, 0.085]
+    pattern: hub
+    cost_mode: uniform
