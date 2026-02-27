@@ -61,6 +61,7 @@ nohup uv run main.py run-multi --config configs/experiment_multi.yaml --dataset-
 ## 分析脚本说明
 
 - `analysis.py` 默认自动识别 ILP 基线（`--ilp-id auto`，优先 `ilp_ortools` / `ilp_pulp`）。
+- 支持 `--algorithms` 只分析指定算法（逗号分隔），且该参数启用时必须包含至少一个 ILP 算法。
 - 质量排名使用 `gap_to_ilp_opt_pct_mean`，时间排名使用 `runtime_sec_mean`（都越小越好）。
 - 会输出按类的质量/时间/加权排名热图、收敛曲线、显著性热图等。
 

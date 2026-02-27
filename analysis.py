@@ -96,6 +96,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--alpha", type=float, default=0.05,
                         help="Significance alpha threshold")
     parser.add_argument(
+        "--algorithms",
+        default=None,
+        help="Optional comma-separated algorithm_id filter, e.g. ga,greedy_001,ilp_pulp; when set, must include at least one ILP algorithm",
+    )
+    parser.add_argument(
         "--test",
         choices=["wilcoxon", "ttest"],
         default="wilcoxon",
@@ -106,6 +111,23 @@ def _parse_args() -> argparse.Namespace:
 
 def _as_bool(series: pd.Series) -> pd.Series:
     return series.astype(str).str.strip().str.lower().isin({"1", "true", "yes"})
+
+
+def _parse_algorithm_filter(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    text = str(raw).strip()
+    if not text:
+        return []
+    tokens = [x.strip() for x in text.split(",")]
+    dedup: list[str] = []
+    seen: set[str] = set()
+    for token in tokens:
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        dedup.append(token)
+    return dedup
 
 
 def _parse_solver_status(meta_json: Any) -> str:
@@ -1994,6 +2016,30 @@ def main() -> None:
         stale_png.unlink(missing_ok=True)
 
     merged, manifest = _load_runs_from_root(runs_root)
+    algorithm_filter = _parse_algorithm_filter(args.algorithms)
+    if algorithm_filter:
+        available = sorted(
+            merged["algorithm_id"].dropna().astype(str).unique().tolist())
+        missing = [
+            algorithm_id for algorithm_id in algorithm_filter if algorithm_id not in available]
+        if missing:
+            raise ValueError(
+                f"--algorithms 包含未找到的 algorithm_id: {missing}; 可选={available}")
+
+        has_ilp = any("ilp" in algorithm_id.lower()
+                      for algorithm_id in algorithm_filter)
+        if not has_ilp:
+            raise ValueError(
+                "--algorithms 必须至少包含一个 ILP 算法（如 ilp_pulp 或 ilp_ortools）"
+            )
+
+        keep = set(algorithm_filter)
+        merged = merged[merged["algorithm_id"].astype(
+            str).isin(keep)].copy()
+        if "algorithm_id" in manifest.columns:
+            manifest = manifest[manifest["algorithm_id"].astype(
+                str).isin(keep)].copy()
+
     resolved_ilp_id = _resolve_ilp_id(merged, requested_ilp_id=args.ilp_id)
     print(f"[analysis] ILP baseline id: {resolved_ilp_id}")
     merged = _add_ilp_baseline_gap(merged, ilp_id=resolved_ilp_id)
