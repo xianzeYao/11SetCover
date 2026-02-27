@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 
 from core.alg_ga import (
+    _NumpyRNGAdapter,
     _bitflip_mutation,
     _build_problem,
     _evaluate_population,
@@ -146,8 +147,8 @@ def solve(
     """Hybrid GA-SA adapted from source/meta HybridGASA core."""
 
     start = time.perf_counter()
-    rng = random.Random(seed)
-    np_rng = np.random.default_rng(seed)
+    rng = _NumpyRNGAdapter(seed=seed)
+    np_rng = rng.np_rng
 
     a, costs, set_items, item_to_sets = _build_problem(instance)
     n_items, _n_sets = a.shape

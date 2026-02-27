@@ -51,13 +51,13 @@ algorithms:
       init_strategy: hybrid
       init_on_prob: 0.08
       repair_init: true
-      hybrid_frequency: 15
-      elite_fraction: 0.10
+      hybrid_frequency: 20
+      elite_fraction: 0.07
       sa_initial_temp: 1000
       sa_cooling_rate: 0.99
       sa_min_temp: 0.1
-      sa_max_iter: 1200
-      sa_moves_per_temp: 20
+      sa_max_iter: 1000
+      sa_moves_per_temp: 15
       early_stop_patience: 30
       early_stop_min_generations: 140
       min_rel_improve: 0.0001

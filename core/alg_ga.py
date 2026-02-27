@@ -8,6 +8,33 @@ from typing import Any
 import numpy as np
 
 
+class _NumpyRNGAdapter:
+    def __init__(self, seed: int) -> None:
+        self.np_rng = np.random.default_rng(seed)
+
+    def random(self) -> float:
+        return float(self.np_rng.random())
+
+    def randrange(self, stop: int) -> int:
+        if stop <= 0:
+            raise ValueError("stop must be > 0")
+        return int(self.np_rng.integers(0, stop))
+
+    def choice(self, seq):
+        if len(seq) == 0:
+            raise IndexError("cannot choose from an empty sequence")
+        return seq[int(self.np_rng.integers(0, len(seq)))]
+
+    def sample(self, population, k: int):
+        pool = list(population)
+        if k < 0 or k > len(pool):
+            raise ValueError("sample larger than population or is negative")
+        if k == 0:
+            return []
+        idx = self.np_rng.choice(len(pool), size=k, replace=False)
+        return [pool[int(i)] for i in idx]
+
+
 def _relative_improved(previous_best: float, current_best: float, threshold: float) -> bool:
     if not np.isfinite(current_best):
         return False
@@ -257,8 +284,8 @@ def solve(
     """Genetic algorithm adapted from source/meta GeneticAlgorithm core."""
 
     start = time.perf_counter()
-    rng = random.Random(seed)
-    np_rng = np.random.default_rng(seed)
+    rng = _NumpyRNGAdapter(seed=seed)
+    np_rng = rng.np_rng
 
     a, costs, _set_items, item_to_sets = _build_problem(instance)
     n_items, n_sets = a.shape
