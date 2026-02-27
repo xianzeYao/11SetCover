@@ -22,21 +22,19 @@ from core.alg_ga import (
 )
 
 
-def _build_neighbors_k1(solution: np.ndarray) -> list[np.ndarray]:
-    neighbors: list[np.ndarray] = []
-    for idx, flag in enumerate(solution.tolist()):
-        neighbor = solution.copy().astype(np.int8)
-        neighbor[int(idx)] = np.int8(0 if int(flag) == 1 else 1)
-        neighbors.append(neighbor)
-    return neighbors
+def _sample_neighbor_k1(solution: np.ndarray, rng: random.Random) -> np.ndarray:
+    if solution.size <= 0:
+        return solution.copy()
+    neighbor = solution.copy()
+    idx = int(rng.randrange(solution.size))
+    neighbor[idx] = np.int8(0 if int(neighbor[idx]) == 1 else 1)
+    return neighbor
 
 
 def _sa_local_search(
     initial_solution: np.ndarray,
     a: np.ndarray,
     costs: np.ndarray,
-    set_items: list[tuple[int, ...]],
-    item_to_sets: list[list[int]],
     rng: random.Random,
     initial_temp: float,
     cooling_rate: float,
@@ -66,10 +64,7 @@ def _sa_local_search(
         for _ in range(int(moves_per_temp)):
             if iter_count >= int(max_iter):
                 break
-            neighbors = _build_neighbors_k1(solution=selected)
-            if not neighbors:
-                break
-            next_solution = neighbors[rng.randrange(len(neighbors))]
+            next_solution = _sample_neighbor_k1(solution=selected, rng=rng)
             new_value, _new_cost, _new_uncovered, _new_feasible = _evaluate_solution(
                 solution=next_solution,
                 a=a,
@@ -113,7 +108,7 @@ def _sa_local_search(
         "final_temp": float(temp),
         "uncovered_count": int(final_uncovered),
         "best_penalized": float(final_penalized),
-        "neighbor_mode": "full_enumeration_k1",
+        "neighbor_mode": "random_k1_sampling",
         "evaluation_mode": "full_recompute",
     }
     return final_solution, float(final_cost), float(final_penalized), int(final_uncovered), bool(final_feasible), meta
@@ -131,6 +126,8 @@ def solve(
     init_strategy: str = "random",
     init_on_prob: float = 0.1,
     repair_init: bool = True,
+    repair_offspring: bool = False,
+    prune_offspring: bool = False,
     hybrid_frequency: int = 10,
     elite_fraction: float = 0.2,
     sa_initial_temp: float = 1000.0,
@@ -150,7 +147,7 @@ def solve(
     rng = _NumpyRNGAdapter(seed=seed)
     np_rng = rng.np_rng
 
-    a, costs, set_items, item_to_sets = _build_problem(instance)
+    a, costs, _set_items, item_to_sets = _build_problem(instance)
     n_items, _n_sets = a.shape
     pop_size = max(4, int(population_size))
     n_gen = max(1, int(generations))
@@ -214,8 +211,6 @@ def solve(
                     initial_solution=population[idx_int],
                     a=a,
                     costs=costs,
-                    set_items=set_items,
-                    item_to_sets=item_to_sets,
                     rng=rng,
                     initial_temp=float(sa_initial_temp),
                     cooling_rate=float(sa_cooling_rate),
@@ -274,10 +269,12 @@ def solve(
                 c1, mutation_rate=mutation_rate, np_rng=np_rng, rng=rng)
             c2 = _bitflip_mutation(
                 c2, mutation_rate=mutation_rate, np_rng=np_rng, rng=rng)
-            c1 = _repair_solution(c1, a, costs, item_to_sets, rng)
-            c2 = _repair_solution(c2, a, costs, item_to_sets, rng)
-            c1 = _prune_solution(c1, a, costs)
-            c2 = _prune_solution(c2, a, costs)
+            if bool(repair_offspring):
+                c1 = _repair_solution(c1, a, costs, item_to_sets, rng)
+                c2 = _repair_solution(c2, a, costs, item_to_sets, rng)
+            if bool(prune_offspring):
+                c1 = _prune_solution(c1, a, costs)
+                c2 = _prune_solution(c2, a, costs)
             new_population.append(c1)
             if len(new_population) < pop_size:
                 new_population.append(c2)
@@ -327,6 +324,8 @@ def solve(
             "init_strategy": str(init_strategy).strip().lower(),
             "init_on_prob": float(init_on_prob),
             "repair_init": bool(repair_init),
+            "repair_offspring": bool(repair_offspring),
+            "prune_offspring": bool(prune_offspring),
             "best_any_penalized": float(best_any_value),
             "best_any_cost": float(best_any_cost),
             "uncovered_count": int(uncovered_count),
