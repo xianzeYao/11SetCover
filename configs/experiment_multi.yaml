@@ -16,12 +16,12 @@ algorithms:
   - id: ilp_pulp
     module: core.alg_ilp_pulp
     params:
-      time_limit_sec: 300
+      time_limit_sec: 360
       msg: 0
   - id: ilp_ortools
     module: core.alg_ilp_ortools
     params:
-      time_limit_sec: 300
+      time_limit_sec: 360
       msg: 0
       num_search_workers: 1
   - id: ga
