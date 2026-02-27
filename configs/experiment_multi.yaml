@@ -39,6 +39,19 @@ algorithms:
       early_stop_patience: 30
       early_stop_min_generations: 140
       min_rel_improve: 0.0001
+  - id: moea_nsga2
+    module: core.alg_moea_nsga2
+    params:
+      pop_size: 100
+      generations: 250
+      crossover_rate: 0.9
+      init_on_prob: 0.08
+      repair_probability: 0.85
+      init_strategy: hybrid
+      elite_archive_size: 300
+      early_stop_patience: 30
+      early_stop_min_generations: 175
+      min_rel_improve: 0.0001
   - id: hgasa
     module: core.alg_hgasa
     params:
@@ -61,20 +74,7 @@ algorithms:
       early_stop_patience: 30
       early_stop_min_generations: 140
       min_rel_improve: 0.0001
-  - id: moea_nsga2
-    module: core.alg_moea_nsga2
-    params:
-      pop_size: 100
-      generations: 250
-      crossover_rate: 0.9
-      init_on_prob: 0.08
-      repair_probability: 0.85
-      init_strategy: hybrid
-      elite_archive_size: 300
-      early_stop_patience: 30
-      early_stop_min_generations: 175
-      min_rel_improve: 0.0001
-
+  
 
 output:
   root: outputs/experiments
