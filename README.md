@@ -14,6 +14,12 @@ uv sync
 uv run main.py gen --config configs/dataset_profiles_datagen2_plusplusplus.yaml --output-root outputs/datasets --dataset-id datagen2_plusplusplus
 ```
 
+2.1 仅生成 `special_clustered`（20 样本）：
+
+```bash
+uv run main.py gen --config configs/dataset_profiles_special_clustered_only.yaml --output-root outputs/datasets --dataset-id datagen_special_clustered_only
+```
+
 3. 多算法批量运行：
 
 ```bash
@@ -40,12 +46,19 @@ uv run main.py run-multi --config configs/experiment_multi.yaml --dataset-root o
 nohup uv run main.py run-multi --config configs/experiment_multi.yaml --dataset-root outputs/datasets/datagen2_plusplusplus --algorithms ilp_pulp,greedy_001,ga,hgasa,moea_nsga2 --repeats 5 --seeds 0,11,22,33,44 > run_all.log 2>&1 &
 ```
 
+- 仅 `special_clustered` 数据集跑全算法（20 样本 × repeat5）：
+
+```bash
+nohup uv run main.py run-multi --config configs/experiment_multi.yaml --dataset-root outputs/datasets/datagen_special_clustered_only --algorithms ilp_pulp,greedy_001,ga,hgasa,moea_nsga2 --repeats 5 --seeds 0,11,22,33,44 > run_special_clustered_only.log 2>&1 &
+```
+
 ## 数据配置文件
 
 - `configs/dataset_profiles.yaml`：默认配置
 - `configs/dataset_profiles_datagen2_plus.yaml`：中等加强版
 - `configs/dataset_profiles_datagen2_plusplus.yaml`：加强版
 - `configs/dataset_profiles_datagen2_plusplusplus.yaml`：当前 stress 版（high/large/special 更强）
+- `configs/dataset_profiles_special_clustered_only.yaml`：仅 `special_clustered`，20 样本（用于结构类专项分析）
 
 ## 结构化生成参数（新增）
 
