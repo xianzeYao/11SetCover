@@ -26,9 +26,9 @@ classes:
 
   # 2) item_count 对照：仅 item_range 变化，其余固定
   - class_id: item_scale_small
-    set_range: [520, 520]
+    set_range: [560, 560]
     item_range: [140, 320]
-    density_range: [0.060, 0.060]
+    density_range: [0.065, 0.065]
     pattern: random
     cost_mode: uniform
 
@@ -41,8 +41,8 @@ classes:
 
   # 3) density 对照：仅 density_range 变化，其余固定
   - class_id: low_density
-    set_range: [560, 560]
-    item_range: [360, 360]
+    set_range: [620, 620]
+    item_range: [380, 380]
     density_range: [0.008, 0.025]
     pattern: random
     cost_mode: uniform

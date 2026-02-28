@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-import hashlib
 import json
 import math
-import random
 from itertools import combinations
 from pathlib import Path
 from typing import Any
@@ -13,7 +11,6 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from core.io_dataset import read_instance
 try:
     import seaborn as sns
 except Exception as exc:  # pragma: no cover
@@ -71,9 +68,6 @@ REQUIRED_COLUMNS = [
     "objective",
     "feasible",
 ]
-
-ROBUST_DROP_PCTS = [1, 3, 5, 7]
-ROBUST_TRIALS = 5
 
 
 def _parse_args() -> argparse.Namespace:
@@ -727,171 +721,6 @@ def _plot_pareto_per_sample(
     summary_df.to_csv(results_dir / "pareto_per_sample_index.csv", index=False)
 
 
-def _parse_selected_sets_payload(selected_sets_json: Any, meta_json: Any) -> list[int] | None:
-    payload: Any = None
-    if isinstance(selected_sets_json, str) and selected_sets_json.strip():
-        try:
-            payload = json.loads(selected_sets_json)
-        except Exception:
-            payload = None
-    elif isinstance(selected_sets_json, list):
-        payload = selected_sets_json
-
-    if payload is None and isinstance(meta_json, str) and meta_json.strip():
-        try:
-            meta = json.loads(meta_json)
-        except Exception:
-            meta = None
-        if isinstance(meta, dict) and isinstance(meta.get("selected_sets"), list):
-            payload = meta.get("selected_sets")
-
-    if not isinstance(payload, list):
-        return None
-
-    out: list[int] = []
-    for x in payload:
-        try:
-            v = int(x)
-        except Exception:
-            continue
-        if v >= 0:
-            out.append(v)
-    return sorted(set(out))
-
-
-def _stable_trial_seed(*parts: Any) -> int:
-    key = "|".join(str(p) for p in parts)
-    digest = hashlib.md5(key.encode("utf-8")).hexdigest()
-    return int(digest[:8], 16)
-
-
-def _compute_drop_robustness(
-    runs_df: pd.DataFrame,
-    drop_pcts: list[int],
-    trials: int,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    detail_cols = [
-        "algorithm_id",
-        "class_id",
-        "instance_id",
-        "seed",
-        "repeat_idx",
-        "drop_pct",
-        "trial_count",
-        "feasible_rate_after_drop",
-    ]
-    summary_cols = [
-        "algorithm_id",
-        "class_id",
-        "drop_pct",
-        "sample_count",
-        "feasible_rate_mean",
-        "feasible_rate_std",
-    ]
-    required = {"algorithm_id", "class_id", "instance_id",
-                "source_path", "seed", "repeat_idx", "feasible"}
-    if not required.issubset(set(runs_df.columns)):
-        return pd.DataFrame(columns=detail_cols), pd.DataFrame(columns=summary_cols)
-
-    detail_rows: list[dict[str, Any]] = []
-    instance_cache: dict[str, tuple[int, list[np.ndarray]]] = {}
-    work = runs_df[runs_df["feasible"] == True].copy()
-    if work.empty:
-        return pd.DataFrame(columns=detail_cols), pd.DataFrame(columns=summary_cols)
-
-    for _, row in work.iterrows():
-        source_path = str(row.get("source_path", "")).strip()
-        if not source_path:
-            continue
-
-        selected = _parse_selected_sets_payload(
-            row.get("selected_sets_json"), row.get("meta_json"))
-        if selected is None:
-            continue
-        if source_path not in instance_cache:
-            try:
-                inst = read_instance(
-                    source_path, dataset_id=str(row.get("dataset_id", "")))
-                set_arrays = [np.asarray(rec.items, dtype=int)
-                              for rec in inst.sets]
-                instance_cache[source_path] = (int(inst.n_items), set_arrays)
-            except Exception:
-                continue
-        n_items, set_arrays = instance_cache[source_path]
-
-        for drop_pct in drop_pcts:
-            if not selected:
-                detail_rows.append(
-                    {
-                        "algorithm_id": str(row["algorithm_id"]),
-                        "class_id": str(row["class_id"]),
-                        "instance_id": str(row["instance_id"]),
-                        "seed": int(row["seed"]) if pd.notna(row["seed"]) else -1,
-                        "repeat_idx": int(row["repeat_idx"]) if pd.notna(row["repeat_idx"]) else -1,
-                        "drop_pct": int(drop_pct),
-                        "trial_count": int(trials),
-                        "feasible_rate_after_drop": 0.0,
-                    }
-                )
-                continue
-
-            drop_k = min(len(selected), max(
-                1, int(math.ceil(len(selected) * float(drop_pct) / 100.0))))
-            success = 0
-            for t in range(trials):
-                rng = random.Random(
-                    _stable_trial_seed(
-                        row.get("algorithm_id", ""),
-                        row.get("instance_id", ""),
-                        row.get("seed", ""),
-                        row.get("repeat_idx", ""),
-                        drop_pct,
-                        t,
-                    )
-                )
-                dropped = set(rng.sample(selected, drop_k))
-                remain = [j for j in selected if j not in dropped]
-
-                cover = np.zeros(n_items, dtype=bool)
-                for j in remain:
-                    if 0 <= j < len(set_arrays):
-                        items = set_arrays[j]
-                        if items.size:
-                            cover[items] = True
-                if bool(np.all(cover)):
-                    success += 1
-
-            detail_rows.append(
-                {
-                    "algorithm_id": str(row["algorithm_id"]),
-                    "class_id": str(row["class_id"]),
-                    "instance_id": str(row["instance_id"]),
-                    "seed": int(row["seed"]) if pd.notna(row["seed"]) else -1,
-                    "repeat_idx": int(row["repeat_idx"]) if pd.notna(row["repeat_idx"]) else -1,
-                    "drop_pct": int(drop_pct),
-                    "trial_count": int(trials),
-                    "feasible_rate_after_drop": float(success / float(trials)),
-                }
-            )
-
-    detail_df = pd.DataFrame(detail_rows)
-    if detail_df.empty:
-        return pd.DataFrame(columns=detail_cols), pd.DataFrame(columns=summary_cols)
-
-    summary_df = (
-        detail_df.groupby(["algorithm_id", "class_id",
-                          "drop_pct"], as_index=False)
-        .agg(
-            sample_count=("feasible_rate_after_drop", "count"),
-            feasible_rate_mean=("feasible_rate_after_drop", "mean"),
-            feasible_rate_std=("feasible_rate_after_drop", "std"),
-        )
-        .sort_values(["class_id", "drop_pct", "algorithm_id"])
-        .reset_index(drop=True)
-    )
-    return detail_df, summary_df
-
-
 def _parse_curve_payload(value: Any) -> list[float]:
     if value is None:
         return []
@@ -1509,76 +1338,6 @@ def _plot_tradeoff_by_class(
     _save_fig(fig, path)
 
 
-def _plot_drop_robustness_by_class(
-    robustness_detail_df: pd.DataFrame,
-    path: Path,
-    class_order: list[str],
-    algo_order: list[str],
-    class_color_map: dict[str, str] | None = None,
-) -> None:
-    if robustness_detail_df.empty:
-        return
-
-    classes = [c for c in class_order if c in set(
-        robustness_detail_df["class_id"].astype(str).unique())]
-    if not classes:
-        return
-
-    ncols = 3
-    nrows = int(math.ceil(len(classes) / ncols))
-    fig, axes = plt.subplots(nrows, ncols, figsize=(
-        5.2 * ncols, 3.8 * nrows), squeeze=False)
-    axes_flat = axes.flatten()
-    x_order = ROBUST_DROP_PCTS
-
-    legend_handles = None
-    legend_labels = None
-
-    for i, class_id in enumerate(classes):
-        ax = axes_flat[i]
-        sub = robustness_detail_df[robustness_detail_df["class_id"] == class_id].copy(
-        )
-        sub = sub.sort_values("drop_pct")
-        if sub.empty:
-            ax.text(0.5, 0.5, "No data", ha="center", va="center")
-            ax.axis("off")
-            continue
-
-        sns.lineplot(
-            data=sub,
-            x="drop_pct",
-            y="feasible_rate_after_drop",
-            hue="algorithm_id",
-            hue_order=algo_order,
-            estimator="mean",
-            errorbar=("ci", 95),
-            marker="o",
-            sort=False,
-            ax=ax,
-        )
-        ax.set_title(f"class: {class_id}", color="black")
-        ax.set_xlabel("Removed selected sets (%)")
-        ax.set_ylabel("Feasible rate after drop")
-        ax.set_xticks(x_order)
-        ax.set_ylim(0.0, 1.02)
-        ax.grid(True, linestyle="--", alpha=0.3)
-
-        if legend_handles is None:
-            legend_handles, legend_labels = ax.get_legend_handles_labels()
-        if ax.legend_ is not None:
-            ax.legend_.remove()
-
-    for j in range(len(classes), len(axes_flat)):
-        axes_flat[j].axis("off")
-
-    if legend_handles and legend_labels:
-        fig.legend(legend_handles, legend_labels,
-                   loc="upper center", ncol=min(4, len(legend_labels)))
-    fig.suptitle(
-        "Robustness Test: Feasible Rate After Random Set Removal", y=1.02)
-    _save_fig(fig, path)
-
-
 def _complexity_axis_class_mask(
     class_ids: pd.Series,
     axis_name: str,
@@ -1839,7 +1598,6 @@ def _generate_figures(
     summary_class_df: pd.DataFrame,
     fit_df: pd.DataFrame,
     significance_df: pd.DataFrame,
-    robustness_detail_df: pd.DataFrame,
     figures_dir: Path,
     alpha: float,
     ilp_id: str,
@@ -1990,13 +1748,6 @@ def _generate_figures(
     )
     _plot_significance_heatmaps(
         significance_df, figures_dir, alpha=alpha, metric="gap_to_ilp_opt_pct")
-    _plot_drop_robustness_by_class(
-        robustness_detail_df=robustness_detail_df,
-        path=figures_dir / "robust_feasible_rate_drop_by_class.png",
-        class_order=class_order,
-        algo_order=algo_order,
-        class_color_map=class_color_map,
-    )
 
 
 def main() -> None:
@@ -2014,6 +1765,11 @@ def main() -> None:
     figures_dir.mkdir(parents=True, exist_ok=True)
     for stale_png in figures_dir.glob("*.png"):
         stale_png.unlink(missing_ok=True)
+    for stale_csv in [
+        results_dir / "robustness_drop_feasible_detail.csv",
+        results_dir / "robustness_drop_feasible_summary.csv",
+    ]:
+        stale_csv.unlink(missing_ok=True)
 
     merged, manifest = _load_runs_from_root(runs_root)
     algorithm_filter = _parse_algorithm_filter(args.algorithms)
@@ -2056,11 +1812,6 @@ def main() -> None:
         method=str(args.test),
     )
     fit_df = _complexity_fit_table(merged)
-    robustness_detail_df, robustness_summary_df = _compute_drop_robustness(
-        merged,
-        drop_pcts=ROBUST_DROP_PCTS,
-        trials=ROBUST_TRIALS,
-    )
 
     merged.to_csv(results_dir / "runs_merged.csv", index=False)
     summary_class.to_csv(results_dir / "summary_algo_class.csv", index=False)
@@ -2069,10 +1820,6 @@ def main() -> None:
     significance.to_csv(results_dir / "significance_algo.csv", index=False)
     manifest.to_csv(results_dir / "manifest.csv", index=False)
     fit_df.to_csv(results_dir / "complexity_fit.csv", index=False)
-    robustness_detail_df.to_csv(
-        results_dir / "robustness_drop_feasible_detail.csv", index=False)
-    robustness_summary_df.to_csv(
-        results_dir / "robustness_drop_feasible_summary.csv", index=False)
     _write_class_color_map(class_order, class_color_map,
                            results_dir / "class_color_map.csv")
 
@@ -2082,7 +1829,6 @@ def main() -> None:
         summary_class_df=summary_class,
         fit_df=fit_df,
         significance_df=significance,
-        robustness_detail_df=robustness_detail_df,
         figures_dir=figures_dir,
         alpha=float(args.alpha),
         ilp_id=resolved_ilp_id,

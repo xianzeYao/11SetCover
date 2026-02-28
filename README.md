@@ -32,6 +32,12 @@ uv run main.py run-multi --config configs/experiment_multi.yaml --dataset-root o
 uv run analysis.py --runs-root outputs/experiments/<batch_id>/runs
 ```
 
+推荐（只分析指定算法并显式指定 ILP 基线）：
+
+```bash
+uv run analysis.py --runs-root outputs/experiments/<batch_id>/runs --algorithms ilp_pulp,greedy_001,ga,moea_nsga2 --ilp-id ilp_pulp
+```
+
 ## 常用命令
 
 - 仅跑指定算法：
@@ -77,7 +83,6 @@ nohup uv run main.py run-multi --config configs/experiment_multi.yaml --dataset-
 - 支持 `--algorithms` 只分析指定算法（逗号分隔），且该参数启用时必须包含至少一个 ILP 算法。
 - 质量排名使用 `gap_to_ilp_opt_pct_mean`，时间排名使用 `runtime_sec_mean`（都越小越好）。
 - 会输出按类的质量/时间/加权排名热图、收敛曲线、显著性热图等。
-
 ## 算法来源映射
 
 - `core.alg_ilp_pulp` <- `source/ilp/setcover_experiment.py`（PuLP + CBC）
@@ -101,4 +106,6 @@ nohup uv run main.py run-multi --config configs/experiment_multi.yaml --dataset-
   - `compare/results/*`
   - `compare/figures/*`
   - `runs/analysis/results/*`（执行 `analysis.py` 后生成）
+    - 包含 `robustness_drop_feasible_detail.csv` / `robustness_drop_feasible_summary.csv`
   - `runs/analysis/figures/*`（执行 `analysis.py` 后生成）
+    - 包含 `robust_feasible_rate_drop_by_class.png`
