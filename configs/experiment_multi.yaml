@@ -71,7 +71,7 @@ algorithms:
       sa_initial_temp: 500
       sa_cooling_rate: 0.96
       sa_min_temp: 1.0
-      sa_max_iter: 300
+      sa_max_iter: 350
       sa_moves_per_temp: 8
       early_stop_patience: 30
       early_stop_min_generations: 140
