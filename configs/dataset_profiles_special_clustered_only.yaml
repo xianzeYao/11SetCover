@@ -1,0 +1,19 @@
+dataset_id: datagen_special_clustered_only
+output_root: outputs/datasets
+seed: 2026
+clean_output: true
+
+item_ratio_range: [0.4, 0.8]
+cost_mode: uniform
+cost_range: [1, 20]
+samples_per_class: 20
+
+classes:
+  - class_id: special_clustered
+    set_range: [620, 620]
+    item_range: [380, 380]
+    density_range: [0.08, 0.08]
+    pattern: clustered
+    cluster_bias: 0.85
+    cluster_count_factor: 0.9
+    cost_mode: uniform
