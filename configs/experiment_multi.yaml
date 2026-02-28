@@ -66,13 +66,13 @@ algorithms:
       repair_init: true
       repair_offspring: false
       prune_offspring: false
-      hybrid_frequency: 20
-      elite_fraction: 0.07
-      sa_initial_temp: 1000
-      sa_cooling_rate: 0.99
-      sa_min_temp: 0.1
-      sa_max_iter: 1000
-      sa_moves_per_temp: 15
+      hybrid_frequency: 40
+      elite_fraction: 0.05
+      sa_initial_temp: 500
+      sa_cooling_rate: 0.96
+      sa_min_temp: 1.0
+      sa_max_iter: 300
+      sa_moves_per_temp: 8
       early_stop_patience: 30
       early_stop_min_generations: 140
       min_rel_improve: 0.0001
